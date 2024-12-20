@@ -15,6 +15,7 @@ import { readExcelFile } from "@/assets/excelFunctions";
 
 import QueueSection from "./Queue/QueueSection";
 import NewspaperSection from "./Newspaper/NewspaperSection";
+import MNSection from "./MN/MNSection";
 import { InfinitySpin } from "react-loader-spinner";
 import { transform } from "framer-motion";
 
@@ -35,6 +36,8 @@ export default function Import({ activeSlideIndex }) {
                 setTabContent(<QueueSection worksheet={worksheet} />)
             else if (activeSlideIndex == 2) 
                 setTabContent(<NewspaperSection worksheet={worksheet} />)
+            else if(activeSlideIndex == 3)
+                setTabContent(<MNSection worksheet={worksheet} />)
         }, 1000)
 
 

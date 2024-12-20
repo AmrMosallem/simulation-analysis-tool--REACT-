@@ -1,35 +1,37 @@
-import { useRef, useEffect } from "react"
+import { useRef, useEffect } from "react";
 import { Chart } from "chart.js/auto";
 
 export default function QueueChart({ data }) {
-
     const chartRef = useRef(null);
+    const chartInstanceRef = useRef(null); // To store and clean up Chart instance
+
+    // Function to process data
     function getCustomerCountsAndPresence(events) {
         const timePoints = {};
         let currentCustomers = new Set();
 
-        // Track changes to customers at each time point
         events.forEach((event) => {
-            if (!timePoints[event.time])
+            if (!timePoints[event.time]) {
                 timePoints[event.time] = {
                     delta: 0,
                     customers: new Set([...currentCustomers]),
                 };
+            }
             timePoints[event.time].delta += event.type === "Arrival" ? 1 : -1;
-               
+
             if (event.type === "Arrival") {
                 currentCustomers.add(event.customerID);
             } else {
                 currentCustomers.delete(event.customerID);
             }
-            // Store the current customers for this time
+
             timePoints[event.time].customers = new Set([...currentCustomers]);
         });
 
-        // Sort time points and compute cumulative customer counts
         const times = Object.keys(timePoints)
             .map(Number)
             .sort((a, b) => a - b);
+
         const customerCounts = [];
         let currentCount = 0;
 
@@ -38,7 +40,7 @@ export default function QueueChart({ data }) {
             customerCounts.push({
                 time,
                 count: currentCount,
-                customers: Array.from(timePoints[time].customers), // Convert Set to Array
+                customers: Array.from(timePoints[time].customers),
             });
         });
 
@@ -47,37 +49,43 @@ export default function QueueChart({ data }) {
 
     useEffect(() => {
         const customerCounts = getCustomerCountsAndPresence(data);
-        // Prepare labels and data for the step chart
+
         const labels = [];
-        const data2 = [];
+        const dataPoints = [];
         const customerLabels = [];
 
-        // Populate labels and data for each step interval
         customerCounts.forEach((entry, index) => {
-            labels.push(entry.time); // Time at the start of the interval
-            data2.push(entry.count); // Customer count at that time
-            customerLabels.push(entry.customers.join(", ") || "None"); // List of customers
+            labels.push(entry.time);
+            dataPoints.push(entry.count);
+            customerLabels.push(entry.customers.join(", ") || "None");
 
-            // Add an extra point to maintain the step effect
             if (index < customerCounts.length - 1) {
                 labels.push(customerCounts[index + 1].time);
-                data2.push(entry.count);
+                dataPoints.push(entry.count);
                 customerLabels.push(entry.customers.join(", ") || "None");
             }
         });
+
         const ctx = chartRef.current.getContext("2d");
-        new Chart(ctx, {
+
+        // Destroy existing chart instance if it exists
+        if (chartInstanceRef.current) {
+            chartInstanceRef.current.destroy();
+        }
+
+        // Create a new Chart instance
+        chartInstanceRef.current = new Chart(ctx, {
             type: "line",
             data: {
                 labels: labels,
                 datasets: [
                     {
-                        label: "Customer IDs",
-                        data: data2,
-                        fill: false,
+                        label: "Number of Customers",
+                        data: dataPoints,
                         borderColor: "white",
                         borderWidth: 2,
-                        stepped: true, // Create the step-like effect
+                        stepped: true,
+                        fill: false,
                     },
                 ],
             },
@@ -87,7 +95,6 @@ export default function QueueChart({ data }) {
                 plugins: {
                     tooltip: {
                         callbacks: {
-                            // Customize the tooltip to show customers at each time
                             label: function (tooltipItem) {
                                 const index = tooltipItem.dataIndex;
                                 const time = labels[index];
@@ -103,14 +110,11 @@ export default function QueueChart({ data }) {
                             display: true,
                             text: "Clock Time",
                         },
-                        ticks: {
-                            stepSize: 1,
-                        },
                     },
                     y: {
                         title: {
                             display: true,
-                            text: "No. of Customers",
+                            text: "Number of Customers",
                         },
                         beginAtZero: true,
                         ticks: {
@@ -120,11 +124,14 @@ export default function QueueChart({ data }) {
                 },
             },
         });
-    })
 
+        // Cleanup chart instance on unmount
+        return () => {
+            if (chartInstanceRef.current) {
+                chartInstanceRef.current.destroy();
+            }
+        };
+    }, [data]); // Re-run effect when `data` changes
 
-    return (
-        <canvas ref={chartRef}>
-        </canvas>
-    )
+    return <canvas ref={chartRef}></canvas>;
 }

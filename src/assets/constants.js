@@ -38,5 +38,6 @@ export const systems = [
   },
 ];
 const longAnimation = 1.8,
+
 shortAnimation = .6; // 1.5
 export { rocket, queue, queueDouble, newspaper, inventory, printer, longAnimation, shortAnimation };

@@ -3,22 +3,29 @@ import { Card, Flex, Heading } from '@chakra-ui/react'
 import { motion } from 'framer-motion';
 import { shortAnimation } from '@/assets/constants';
 const FlexMotionComponent = motion.create(Flex);
-const NewspaperMetrics = ({ derivedData, supply, cost, salvage }) => {
+const MNMetrics = ({ derivedData }) => {
 
     let metricsData = {
-        "Newspaper Sales Key Information": { "Supply": supply, "Cost": cost, "Salvage": salvage },
-        "Summary of Total Metrics for Newspaper Sales Simulation": {},
-        "Average Performance Metrics for Newspaper Sales Simulation": {},
+        "Simulation Summary": {
+            "Total Days": derivedData["Total Days"],
+            "Total Demand": derivedData["Total Demand"],
+            "Total Shortage": derivedData["Total Shortage"],
+        },
+        "Inventory Performance": {
+            "Total Ending Inventory": derivedData["Total Ending Inventory"],
+            "Average Ending Inventory": derivedData["Average Ending Inventory"],
+            "Excess Inventory Days Percentage %": derivedData["Excess Inventory Days Percentage"],
+        },
+        "Demand Fulfillment": {
+            "Fulfillment Rate %": derivedData["Fulfillment Rate"],
+            "Shortage Rate %": derivedData["Shortage Rate"],
+            "Shortage Days Percentage %": derivedData["Shortage Days Percentage"],
+        },
+        "Order Management": {
+            "Average Order Quantity": derivedData["Average Order Quantity"],
+            "Order Variance": derivedData["Order Variance"],
+        },
     }
-    for (const el in derivedData) {
-        if (el.toLowerCase().includes("total")) {
-            metricsData["Summary of Total Metrics for Newspaper Sales Simulation"][el] = derivedData[el];
-        }
-        else {
-            metricsData["Average Performance Metrics for Newspaper Sales Simulation"][el] = derivedData[el];
-        }
-    }
-
     let boxes = [];
     for (const el in metricsData) {
         let cards = [];
@@ -62,4 +69,4 @@ const NewspaperMetrics = ({ derivedData, supply, cost, salvage }) => {
     )
 }
 
-export default NewspaperMetrics
+export default MNMetrics

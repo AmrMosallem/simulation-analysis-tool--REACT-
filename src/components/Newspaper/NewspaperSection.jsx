@@ -46,13 +46,13 @@ const NewspaperSection = ({ worksheet }) => {
       </Tabs.Content>
       <Tabs.Content
         value="analytics">
-        <NewspaperMetrics derivedData={derivedData} />
+        <NewspaperMetrics derivedData={derivedData} supply={data.supply} cost={data.cost} salvage={data.salvage} />
       </Tabs.Content>
       <Tabs.Content value="score">
         <NewspaperScore scores={scores} />
       </Tabs.Content>
       <Tabs.Content value="form">
-        <NewspaperForm initialValues={formData} demand = {formData.demand} />
+        <NewspaperForm initialValues={formData} demand={formData.demand} />
       </Tabs.Content>
 
     </>

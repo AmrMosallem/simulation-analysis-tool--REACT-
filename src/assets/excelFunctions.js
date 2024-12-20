@@ -754,7 +754,7 @@ export function exportQueueingSystemData(data) {
     });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "System Simulation Analysis.xlsx";
+    link.download = "Queueing System Simulation.xlsx";
     link.click();
   });
 }
@@ -803,10 +803,11 @@ export function getQueueingSystemProbability(worksheet) {
   let numberOfCustomers = 0;
   for (let i = locations.upperRow2.row + 1; i <= worksheet.rowCount; i++) {
     const value = getCellValue(worksheet.getCell(i, 1));
-    numberOfCustomers++;
+
     if (!value && value !== 0 && value !== "0") {
       break;
     }
+    numberOfCustomers++;
   }
   const probabilities = {
     numberOfCustomers: numberOfCustomers,
@@ -1093,4 +1094,193 @@ export function getNewspaperProblemFormData(worksheet) {
   };
   console.log(data);
   return data;
+}
+
+export function getMNdata(worksheet) {
+  const locations = getDataLocation(worksheet, {
+    day: "day number",
+    beginningInventory: "beginning inventory",
+    demand: "demand quantity",
+    endingInventory: "ending inventory",
+    shortage: "shortage quantity",
+    orderQuantity: "order quantity",
+    m: "M Value",
+    n: "N Value",
+  });
+  console.log(locations);
+  const n = getCellValue(
+      worksheet.getCell(locations.n.row, locations.n.column + 1)
+    ),
+    m = getCellValue(
+      worksheet.getCell(locations.m.row, locations.m.column + 1)
+    );
+  console.log("N", n);
+  let daysData = [];
+  for (let i = locations.day.row + 1; i <= worksheet.rowCount; i++) {
+    const day = getCellValue(worksheet.getCell(i, locations.day.column)),
+      beginningInventory =
+        getCellValue(
+          worksheet.getCell(i, locations.beginningInventory.column)
+        ) || 0,
+      demand = getCellValue(worksheet.getCell(i, locations.demand.column)) || 0,
+      endingInventory =
+        getCellValue(worksheet.getCell(i, locations.endingInventory.column)) ||
+        0,
+      shortage =
+        getCellValue(worksheet.getCell(i, locations.shortage.column)) || 0;
+    const orderQuantity =
+      day == 1
+        ? getCellValue(worksheet.getCell(i, locations.orderQuantity.column)) ||
+          0
+        : 0;
+    if (day == "" || day == null || Number.isNaN(day)) continue;
+    daysData.push({
+      day: day,
+      beginningInventory: beginningInventory,
+      demand: demand,
+      endingInventory: endingInventory,
+      shortage: shortage,
+      orderQuantity: orderQuantity,
+    });
+  }
+  const data = {
+    m: m,
+    n: n,
+    daysData: daysData,
+  };
+  console.log(data);
+  return data;
+}
+export function getMNDerivedMetrics(daysData) {
+  // Initialize accumulators and counters
+  let totalDemand = 0;
+  let totalFulfilledDemand = 0;
+  let totalShortage = 0;
+  let totalEndingInventory = 0;
+  let totalOrders = 0;
+  let totalDays = daysData.length;
+  let daysWithShortage = 0;
+  let daysWithExcessInventory = 0;
+  let orderQuantities = [];
+
+  // Loop through data to calculate metrics
+  daysData.forEach((row) => {
+    totalDemand += row.demand;
+    totalShortage += row.shortage;
+    totalEndingInventory += row.endingInventory;
+
+    if (row.shortage > 0) daysWithShortage++; // Count days with shortages
+    if (row.endingInventory > 0) daysWithExcessInventory++; // Count days with leftover inventory
+
+    if (row.orderQuantity > 0) {
+      totalOrders += row.orderQuantity;
+      orderQuantities.push(row.orderQuantity);
+    }
+
+    totalFulfilledDemand += row.demand - row.shortage;
+  });
+
+  // Derived calculations
+  const averageEndingInventory = totalEndingInventory / totalDays;
+  const shortageRate = (totalShortage / totalDemand) * 100; // % of demand not fulfilled
+  const fulfillmentRate = (totalFulfilledDemand / totalDemand) * 100; // % of demand fulfilled
+  const avgOrderQuantity = orderQuantities.length
+    ? totalOrders / orderQuantities.length
+    : 0;
+  const orderVariance = calculateVariance(orderQuantities);
+  const shortageDaysPercentage = (daysWithShortage / totalDays) * 100;
+  const excessInventoryDaysPercentage =
+    (daysWithExcessInventory / totalDays) * 100;
+
+  // Return insights and useful calculations
+  return {
+    "Total Days": totalDays,
+    "Total Demand": totalDemand,
+    "Total Shortage": totalShortage,
+    "Total Ending Inventory": totalEndingInventory,
+    "Average Ending Inventory": averageEndingInventory.toFixed(2),
+    "Fulfillment Rate": fulfillmentRate.toFixed(2),
+    "Shortage Rate": shortageRate.toFixed(2) ,
+    "Shortage Days Percentage": shortageDaysPercentage.toFixed(2) ,
+    "Excess Inventory Days Percentage":
+      excessInventoryDaysPercentage.toFixed(2) ,
+    "Average Order Quantity": avgOrderQuantity.toFixed(2),
+    "Order Variance": orderVariance.toFixed(2),
+  };
+  function calculateVariance(values) {
+    if (values.length === 0) return 0;
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const variance =
+      values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / values.length;
+    return variance;
+  }
+}
+
+// Helper function to calculate variance
+
+export function getMNOverallScore(daysData) {
+  // Initialize metrics
+  let totalDemand = 0;
+  let fulfilledDemand = 0;
+  let totalShortageDays = 0;
+  let totalDays = daysData.length;
+  let endingInventorySum = 0;
+  let orderQuantities = [];
+
+  // Extract required data
+  daysData.forEach((row) => {
+    totalDemand += row.demand;
+    fulfilledDemand += row.demand - row.shortage;
+    if (row.shortage > 0) totalShortageDays++;
+    endingInventorySum += row.endingInventory;
+
+    // Collect order quantities
+    if (row.orderQuantity > 0) {
+      orderQuantities.push(row.orderQuantity);
+    }
+  });
+
+  // 1. Fulfillment Rate Score
+  const fulfillmentRate = (fulfilledDemand / totalDemand) * 100;
+  const fulfillmentScore = fulfillmentRate; // Direct scaling to 100
+
+  // 2. Shortage Rate Score
+  const shortageRate = (totalShortageDays / totalDays) * 100;
+  const shortageScore = 100 - shortageRate; // Lower shortage is better
+
+  // 3. Inventory Efficiency Score
+  const avgEndingInventory = endingInventorySum / totalDays;
+  const inventoryEfficiencyScore = Math.max(100 - avgEndingInventory * 2, 0); // Penalize high ending inventory
+
+  // 4. Order Consistency Score
+  const orderVariance = calculateVariance(orderQuantities);
+  const orderConsistencyScore = Math.max(100 - orderVariance * 2, 0); // Penalize high variance in orders
+
+  // Combine Scores into Overall Score (Weighted Average)
+  const overallScore = (
+    0.4 * fulfillmentScore +
+    0.2 * shortageScore +
+    0.4 * inventoryEfficiencyScore +
+    0.2 * orderConsistencyScore
+  ).toFixed(2);
+
+  // Return results
+  return {
+    metrics: {
+      "Fulfillment Rate": fulfillmentScore.toFixed(2),
+      "Shortage Score": shortageScore.toFixed(2),
+      "Inventory Efficiency": inventoryEfficiencyScore.toFixed(2),
+      "Order Consistency": orderConsistencyScore.toFixed(2),
+    },
+    "Overall Score": overallScore,
+  };
+
+  // Helper function to calculate variance
+  function calculateVariance(values) {
+    if (values.length === 0) return 0;
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const variance =
+      values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / values.length;
+    return variance;
+  }
 }
