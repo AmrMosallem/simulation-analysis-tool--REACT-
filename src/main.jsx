@@ -14,7 +14,7 @@ createRoot(document.getElementById('root')).render(
       /**/ 
       @font-face { 
         font-family: 'Nunito Sans';
-        src: url('./src/assets/fonts/NunitoSans.ttf') format('truetype');
+        src: url('./fonts/NunitoSans.ttf') format('truetype');
         font-weight: normal;
         font-style: normal;
       } 
